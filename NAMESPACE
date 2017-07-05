@@ -1,0 +1,17 @@
+#exportPattern("^[[:alpha:]]+")
+import("methods")
+import("DEoptim")
+import("Rsolnp")
+import("dplyr")
+importFrom("parallel", "clusterEvalQ", "parLapply")
+importFrom("Matrix", "bdiag")
+importFrom("stats", "fitted", "lm", "model.frame", "model.matrix",
+     "na.exclude", "optim", "resid", "rnorm", "runif", "sd",
+     "var")
+exportClasses("prod")
+exportMethods("coef","omega","FSres","summary","show")
+export("coef","omega","FSres","summary","show")
+export("prodestOP","prodestLP","prodestACF","prodestWRDG","prodestWRDG_GMM","panelSim")
+export("printProd")
+export("gOPLP","gACF","gWRDG","finalOPLP","finalACF","finalWRDG")
+export("checkM","lagPanel","block.boot.resample","weightM","withinvar")
