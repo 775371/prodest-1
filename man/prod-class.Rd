@@ -14,7 +14,7 @@
 \section{Slots}{
   \describe{
     %
-    \item{\code{Model}:}{Object of class \code{list}. Contains information about the model and the optimization procedue:
+    \item{\code{Model}:}{Object of class \code{list}. Contains information about the model and the optimization procedure:
         \itemize{
           \item \code{method}: \code{string} The method used in estimation.
           \item \code{FSbetas}: \code{numeric} First-stage estimated parameters.

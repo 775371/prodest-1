@@ -4,7 +4,7 @@
 \title{ACF estimation routine}
 %%%%%%%%%%%%%%%% DESCRIPTION %%%%%%%%%%%%%%%%%%%
 \description{
-  \code{finalACF} is the function linking the data cleaning part of the routine with the final function to be boostrapped.
+  \code{finalACF} is the function linking the data cleaning part of the routine with the final function to be bootstrapped.
 }
 %%%%%%%%% USAGE %%%%%%%%%%%
 \usage{

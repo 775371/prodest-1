@@ -2,8 +2,7 @@
 
 # function to estimate ACF model #
 prodestACF <- function(Y, fX, sX, pX, idvar, timevar, R = 20, cX = NULL, opt = 'optim',
-                       theta0 = NULL, seed = 123456, cluster = NULL){
-  set.seed(seed)
+                       theta0 = NULL, cluster = NULL){
   Start = Sys.time() # start tracking time
   Y <- checkM(Y) # change all input to matrix
   fX <- checkM(fX)
@@ -65,7 +64,7 @@ prodestACF <- function(Y, fX, sX, pX, idvar, timevar, R = 20, cX = NULL, opt = '
   elapsedTime = Sys.time() - Start # total running time
   out <- new("prod",
              Model = list(method = 'ACF', FSbetas = NA, boot.repetitions = R, elapsed.time = elapsedTime, theta0 = theta0,
-                          opt = opt, seed = seed, opt.outcome = betas$opt.outcome, nCores = nCores),
+                          opt = opt, opt.outcome = betas$opt.outcome, nCores = nCores),
              Data = list(Y = Y, free = fX, state = sX, proxy = pX, control = cX, idvar = idvar, timevar = timevar,
                          FSresiduals = betas$FSresiduals),
              Estimates = list(pars = betas$betas, std.errors = boot.errors))

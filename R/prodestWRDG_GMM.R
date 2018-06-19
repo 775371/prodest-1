@@ -1,8 +1,7 @@
 ############ WOOLDRIDGE ###############
 
 # function to estimate Wooldridge #
-prodestWRDG_GMM <- function(Y, fX, sX, pX, idvar, timevar, cX = NULL, seed = 123456, tol = 1e-100){
-  set.seed(seed)
+prodestWRDG_GMM <- function(Y, fX, sX, pX, idvar, timevar, cX = NULL, tol = 1e-100){
   Start = Sys.time() # start tracking time
   Y <- checkM(Y) # change all input to matrix
   fX <- checkM(fX)
@@ -57,8 +56,8 @@ prodestWRDG_GMM <- function(Y, fX, sX, pX, idvar, timevar, cX = NULL, seed = 123
   names(betase) <- res.names # change results' names
   elapsed.time = Sys.time() - Start # total running time
   out <- new("prod",
-             Model = list(method = 'WRDG', boot.repetitions = NA, elapsed.time = elapsed.time, theta0 = NA,
-                          opt = NA, seed = seed, opt.outcome = NULL),
+             Model = list(method = 'WRDG.GMM', boot.repetitions = NA, elapsed.time = elapsed.time, theta0 = NA,
+                          opt = NA, opt.outcome = NULL),
              Data = list(Y = Y, free = fX, state = sX, proxy = pX, control = cX, idvar = idvar, timevar = timevar),
              Estimates = list(pars = betapar, std.errors = betase))
   return(out)

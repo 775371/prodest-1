@@ -83,4 +83,4 @@ setMethod("summary", "prod", function(object){
   }
   cat("\n-------------------------------------------------------------")
 })
-# end of show method
+# end of summary method

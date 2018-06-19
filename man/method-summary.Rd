@@ -6,12 +6,12 @@
 \title{Print a table with a summary of results}
 %%%%%%%%%%%%%%%% DESCRIPTION %%%%%%%%%%%%%%%%%%%
 \description{
-  This method allwos the user to print a table with a summary of the results within an \code{S4} \link{prod} object: the parameter estimates, the method, the number of observations, the time elapsed, the number of bootstrap repetitions, the first stage estimates and the starting points.
+  This method allows the user to print a table with a summary of the results within an \code{S4} \link{prod} object: the parameter estimates, the method, the number of observations, the time elapsed, the number of bootstrap repetitions, the first stage estimates and the starting points.
 }
 %%%%%%%%%%%%%%%% USAGE %%%%%%%%%%%%%%%%%%%
-\usage{
-  summary(object, ...)
-}
+%\usage{
+%  summary(object, ...)
+%}
 %%%%%%%%%%%%%%%% ARGUMENTS %%%%%%%%%%%%%%%%%%%
 \arguments{
   %

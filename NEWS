@@ -1,0 +1,9 @@
+Changes in Version 1.0.1
+
+  o changed prodestWRDG - implemented the IV version
+
+  o added the prodestROB model
+
+  o added the 'screen' option to printProd()
+
+  o added the 'exit' option to prodestOP and prodestLP

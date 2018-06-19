@@ -1,7 +1,6 @@
 ## Simulate a panel dataset  ##
 panelSim <- function(N = 1000, T = 100, alphaL = .6, alphaK = .4, DGP = 1, rho = .7, sigeps = .1,
-                     sigomg = .3, rholnw = .3, seed = 123456){
-  set.seed(seed)
+                     sigomg = .3, rholnw = .3){
   if (DGP != 1 & DGP != 2 & DGP != 3) stop('DGP must be 1, 2 or 3')
   if (T < 15) stop('T must be > 15 to yield a usable number of observations - i.e., 2 per panel.')
   siglnw.tot <- c(.1,0,.1) # parameters describing the different DGP

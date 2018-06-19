@@ -6,7 +6,7 @@ functions to simulate panel data,
 estimate the productivity, state and free variables parameters. Full description of the models, their issues and characteristics
 is available in [Mollisi et al., 2017](https://papers.ssrn.com/sol3/papers.cfm?abstract_id=2916753).
 
-The latest stable version of `prodest` is available at ''.
+The latest stable version of `prodest` is available at 'https://cran.r-project.org/package=prodest'.
 
 The latest development version of `prodest` is available at 'https://github.com/GabrieleRovigatti/prodest/tree/master/prodest'.
 

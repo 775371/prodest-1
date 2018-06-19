@@ -10,7 +10,7 @@
 %%%%%%%%% USAGE %%%%%%%%%%%
 \usage{
   panelSim(N = 1000, T = 100, alphaL = .6, alphaK = .4, DGP = 1,
-           rho = .7, sigeps = .1, sigomg = .3, rholnw = .3, seed = 123456)
+           rho = .7, sigeps = .1, sigomg = .3, rholnw = .3)
 }
 %%%%%%%%% ARGUMENTS %%%%%%%%%%%
 \arguments{
@@ -40,9 +40,6 @@
   %
   \item{rholnw}{
     AR(1) coefficient for log(wage). By default \code{rholnw=.3}.}
-  %
-  \item{seed}{
-    seed set when the routine starts. By default \code{seed = 123456}.}
   %
 }
 %%%%%%%%% DETAILS %%%%%%%%%%%
@@ -87,7 +84,7 @@
 %%%%%%%%% REFERENCES %%%%%%%%%%%
 \references{
   Ackerberg, D., Caves, K. and Frazer, G. (2015).
-  "Identication properties of recent production function estimators."
+  "Identification properties of recent production function estimators."
   Econometrica, 83(6), 2411-2451.
 }
 %%%%%%%%% EXAMPLES %%%%%%%%%%%
@@ -105,8 +102,8 @@
   ACF.fit <- prodestACF(Y, fX, sX, pX2, idvar, timevar, theta0 = c(.5,.5))
   \donttest{
     LP.fit <- prodestLP(Y, fX, sX, pX2, idvar, timevar)
-    WRDG.fit <- prodestWRDG(Y, fX, sX, pX3, idvar, timevar, R = 5)
-  
+    WRDG.fit <- prodestWRDG(Y, fX, sX, pX3, idvar, timevar)
+
     ## print results in lateX tabular format
     printProd(list(LP.fit, ACF.fit, WRDG.fit))
   }

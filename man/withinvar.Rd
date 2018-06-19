@@ -20,7 +20,7 @@
   }
 %%%%%%%%% DETAILS %%%%%%%%%
   \details{
-    \code{withinvar()} accepts a vector as input, then substracts the mean from it and returns the variance.
+    \code{withinvar()} accepts a vector as input, then subtracts the mean from it and returns the variance.
   }
 %%%%%%%%%%%%%%%% AUTHOR %%%%%%%%%%%%%%%%%%%
 \author{Gabriele Rovigatti}

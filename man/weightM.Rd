@@ -4,7 +4,7 @@
 \title{Generate optimal GMM weighting matrix}
 %%%%%%%%%%%%%%%% DESCRIPTION %%%%%%%%%%%%%%%%%%%
 \description{
-  In a Woodrdige estimation setting, i.e., in a system GMM framework, this function returns the optimal weighting matrix or the variance-covariance matrix given 1st or 2nd stage estimation results.
+  In a Wooldridge estimation setting, i.e., in a system GMM framework, this function returns the optimal weighting matrix or the variance-covariance matrix given 1st or 2nd stage estimation results.
 }
 %%%%%%%%% USAGE %%%%%%%%%%%
 \usage{
@@ -38,7 +38,7 @@
   }
   %
   \item{numR}{
-    Number of state + number of free + number of control variables (i.e., number of constrainted parameters).
+    Number of state + number of free + number of control variables (i.e., number of constrained parameters).
   }
   %
   \item{SE}{

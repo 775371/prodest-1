@@ -6,7 +6,7 @@
 \title{Print a table with parameter estimates}
 %%%%%%%%%%%%%%%% DESCRIPTION %%%%%%%%%%%%%%%%%%%
 \description{
-  This method allwos the user to print a table with the parameter estimates of an \code{S4} \link{prod} object.
+  This method allows the user to print a table with the parameter estimates of an \code{S4} \link{prod} object.
 }
 %%%%%%%%%%%%%%%% USAGE %%%%%%%%%%%%%%%%%%%
 \usage{

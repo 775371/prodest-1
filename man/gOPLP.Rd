@@ -8,7 +8,7 @@
 }
 %%%%%%%%% USAGE %%%%%%%%%%%
 \usage{
-  gOPLP(vtheta, mX, mlX, vphi, vlag.phi, vres, stol)
+  gOPLP(vtheta, mX, mlX, vphi, vlag.phi, vres, stol, Pr.hat, att)
 }
 %%%%%%%%% ARGUMENTS %%%%%%%%%%%
 \arguments{
@@ -39,6 +39,14 @@
   %
   \item{stol}{
     Number setting the tolerance of the routine.
+  }
+  %
+  \item{Pr.hat}{
+    Vector of fitted exit probabilities.
+  }
+  %
+  \item{att}{
+    Indicator for attrition in the data - i.e., if  firms exit the market.
   }
   %
 }

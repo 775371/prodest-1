@@ -8,7 +8,7 @@ The \code{prodestOP()} function accepts at least 6 objects (id, time, output, fr
 }
 \usage{
   prodestOP(Y, fX, sX, pX, idvar, timevar, R = 20, cX = NULL,
-            opt = 'optim', theta0 = NULL, seed = 123456, cluster = NULL, tol = 1e-100)
+            opt = 'optim', theta0 = NULL, cluster = NULL, tol = 1e-100, exit = FALSE)
 }
 \arguments{
   \item{Y      }{
@@ -44,11 +44,11 @@ The \code{prodestOP()} function accepts at least 6 objects (id, time, output, fr
   \item{cluster}{
     an object of class \code{"SOCKcluster"} or \code{"cluster"}. By default \code{cluster = NULL}.}
   %
-  \item{seed}{
-    seed set when the routine starts. By default \code{seed = 123456}.}
-  %
   \item{tol}{
     optimizer tolerance. By default \code{tol = 1e-100}.}
+  %
+  \item{exit}{
+    Indicator for attrition in the data - i.e., if firms exit the market. By default \code{exit = FALSE}; if \code{exit = TRUE}, an indicator function for firms whose last appearance is before the last observation's date is generated and used in the second stage. The user can even specify an indicator variable/matrix/dataframe with the exit years.}
   %
 }
 %%%%%%%%% DETAILS %%%%%%%%%%%
@@ -62,7 +62,7 @@ The \code{prodestOP()} function accepts at least 6 objects (id, time, output, fr
   \itemize{
     \item \eqn{\omega_{it} = E(\omega_{it} | \omega_{it-1}) + u_{it} = g(\omega_{it-1}) + u_{it}}
   }
-  and \eqn{u_{it}} is a random shock component assumed to be uncorrelated with the technicalefficiency, the state variables in \eqn{k_{it}} and the lagged free variables \eqn{w_{it-1}}.
+  and \eqn{u_{it}} is a random shock component assumed to be uncorrelated with the technical efficiency, the state variables in \eqn{k_{it}} and the lagged free variables \eqn{w_{it-1}}.
   The OP method relies on the following set of assumptions:
   \itemize{
     \item a) \eqn{i_{it} = i(k_{it},\omega_{it})} - investments are a function of both the state variable and the technical efficiency parameter;
@@ -76,11 +76,11 @@ The \code{prodestOP()} function accepts at least 6 objects (id, time, output, fr
   }
   which is estimated by a non-parametric approach - First Stage.
   Exploiting the Markovian nature of the productivity process one can use assumption d) in order to set up the relevant moment conditions and estimate the production function parameters - Second stage.
-  Exploting the resisual \eqn{e_{it}} of:
+  Exploiting the residual \eqn{e_{it}} of:
   \itemize{
     \item \eqn{y_{it} - w_{it}\hat{\beta} = \alpha + k_{it}\gamma + g(\omega_{it-1}, \chi_{it}) + \epsilon_{it} }
   }
-  and \eqn{g(.)} is typically left unspecified and approximated by a \eqn{n^{th}} order polynomial and \eqn{\chi_{it}} is an inidicator function for the attrition in the market.
+  and \eqn{g(.)} is typically left unspecified and approximated by a \eqn{n^{th}} order polynomial and \eqn{\chi_{it}} is an indicator function for the attrition in the market.
 }
 %%%%%%%%% VALUE %%%%%%%%%%%
 \value{
@@ -93,7 +93,6 @@ The \code{prodestOP()} function accepts at least 6 objects (id, time, output, fr
       \item \code{elapsed.time:} time elapsed during the estimation.
       \item \code{theta0:} numeric object with the optimization starting points - second stage.
       \item \code{opt:} string with the optimization routine used - 'optim', 'solnp' or 'DEoptim'.
-      \item \code{seed:} the seed set at the beginning of the estimation.
       \item \code{opt.outcome:} optimization outcome.
       \item \code{FSbetas:} first stage estimated parameters.
     }
@@ -148,6 +147,9 @@ The \code{prodestOP()} function accepts at least 6 objects (id, time, output, fr
     OP.fit.control <- prodestOP(chilean$Y, fX = cbind(chilean$fX1, chilean$fX2),
                                 chilean$sX, chilean$inv, chilean$idvar,
                                 chilean$timevar, cX = chilean$cX)
+    OP.fit.attrition <- prodestOP(chilean$Y, fX = cbind(chilean$fX1, chilean$fX2),
+                                chilean$sX, chilean$inv, chilean$idvar,
+                                chilean$timevar, exit = TRUE)
 
     # show results
     summary(OP.fit)
@@ -155,5 +157,5 @@ The \code{prodestOP()} function accepts at least 6 objects (id, time, output, fr
     summary(OP.fit.control)
 
     # show results in .tex tabular format
-     printProd(list(OP.fit, OP.fit.solnp, OP.fit.control))
+     printProd(list(OP.fit, OP.fit.solnp, OP.fit.control, OP.fit.attrition))
 }

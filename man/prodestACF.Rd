@@ -11,7 +11,7 @@
 %%%%%%%%% USAGE %%%%%%%%%%%
 \usage{
   prodestACF(Y, fX, sX, pX, idvar, timevar, R = 20, cX = NULL,
-            opt = 'optim', theta0 = NULL, seed = 123456, cluster = NULL)
+            opt = 'optim', theta0 = NULL, cluster = NULL)
 }
 %%%%%%%%% ARGUMENTS %%%%%%%%%%%
 \arguments{
@@ -48,9 +48,6 @@
   \item{cluster}{
     an object of class \code{"SOCKcluster"} or \code{"cluster"}. By default \code{cluster = NULL}.}
   %
-  \item{seed}{
-    seed set when the routine starts. By default \code{seed = 123456}.}
-  %
 }
 %%%%%%%%% DETAILS %%%%%%%%%%%
   \details{
@@ -63,7 +60,7 @@
       \itemize{
         \item \eqn{\omega_{it} = E(\omega_{it} | \omega_{it-1}) + u_{it} = g(\omega_{it-1}) + u_{it}}
       }
-    and \eqn{u_{it}} is a random shock component assumed to be uncorrelated with the technicalefficiency, the state variables in \eqn{k_{it}} and the lagged free variables \eqn{w_{it-1}}.
+    and \eqn{u_{it}} is a random shock component assumed to be uncorrelated with the technical efficiency, the state variables in \eqn{k_{it}} and the lagged free variables \eqn{w_{it-1}}.
     ACF propose an estimation algorithm alternative to OP and LP procedures claiming that the labour demand and the control function are partially collinear.
     It is based on the following set of assumptions:
       \itemize{
@@ -90,7 +87,6 @@
       \item \code{elapsed.time:} time elapsed during the estimation.
       \item \code{theta0:} numeric object with the optimization starting points - second stage.
       \item \code{opt:} string with the optimization routine used - 'optim', 'solnp' or 'DEoptim'.
-      \item \code{seed:} the seed set at the beginning of the estimation.
       \item \code{opt.outcome:} optimization outcome.
       \item \code{FSbetas:} first stage estimated parameters.
     }
@@ -142,24 +138,27 @@
 
     ACF.fit <- prodestACF(chilean$Y, fX = cbind(chilean$fX1, chilean$fX2), chilean$sX,
                           chilean$pX, chilean$idvar, chilean$timevar,
-                          theta0 = c(.5,.5,.5), seed = 154673, R = 5)
+                          theta0 = c(.5,.5,.5), R = 5)
     \donttest{
+      set.seed(154673)
       ACF.fit.solnp <- prodestACF(chilean$Y, fX = cbind(chilean$fX1, chilean$fX2), chilean$sX,
                             chilean$pX, chilean$idvar, chilean$timevar,
-                            theta0 = c(.5,.5,.5), opt = 'solnp', seed = 154673)
-    
+                            theta0 = c(.5,.5,.5), opt = 'solnp')
+
       # run the same regression in parallel
-      nCores <- as.numeric(Sys.getenv("NUMBER_OF_PROCESSORS"))
+      # nCores <- as.numeric(Sys.getenv("NUMBER_OF_PROCESSORS")) # Windows systems
+      nCores <- 3
       cl <- makeCluster(getOption("cl.cores", nCores - 1))
+      set.seed(154673)
       ACF.fit.par <- prodestACF(chilean$Y, fX = cbind(chilean$fX1, chilean$fX2), chilean$sX,
                                 chilean$pX, chilean$idvar, chilean$timevar,
-                                theta0 = c(.5,.5,.5), cluster = cl, seed = 154673)
+                                theta0 = c(.5,.5,.5), cluster = cl)
       stopCluster(cl)
 
       # show results
       coef(ACF.fit)
       coef(ACF.fit.solnp)
-    
+
        # show results in .tex tabular format
        printProd(list(ACF.fit, ACF.fit.solnp))
     }

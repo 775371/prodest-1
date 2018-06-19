@@ -1,14 +1,13 @@
 \name{prodestWRDG}
 \alias{prodestWRDG}
 \title{
-  Estimate productivity - Wooldridge method
+  Estimate productivity - IV Wooldridge method
 }
 \description{
-  The \code{prodestWRDG()} function accepts at least 6 objects (id, time, output, free, state and proxy variables), and returns a \code{prod} object of class \code{S4} with three elements: (i) a list of model-related objects, (ii) a list with the data used in the estimation and estimated vectors of first-stage residuals, and (iii) a list with the estimated parameters and their bootstrapped standard errors.
+  The \code{prodestWRDG()} function accepts at least 6 objects (id, time, output, free, state and proxy variables), and returns a \code{prod} object of class \code{S3} with three elements: (i) a list of model-related objects, (ii) a list with the data used in the estimation and estimated vectors of first-stage residuals, and (iii) a list with the estimated parameters and their bootstrapped standard errors.
 }
 \usage{
-  prodestWRDG(Y, fX, sX, pX, idvar, timevar, R = 20, cX = NULL, seed = 123456,
-                tol = 1e-100, theta0 = NULL, cluster = NULL)
+  prodestWRDG(Y, fX, sX, pX, idvar, timevar, cX = NULL)
 }
 \arguments{
   \item{Y      }{
@@ -32,21 +31,6 @@
   \item{timevar}{
     the vector/matrix/dataframe identifying time.}
   %
-  \item{R      }{
-  the number of block bootstrap repetitions to be performed in the standard error estimation. By default \code{R = 20}.}
-  %
-  \item{theta0 }{
-  a vector with the second stage optimization starting points. By default \code{theta0 = NULL} and the optimization is run starting from the first stage estimated parameters + \eqn{N(\mu=0,\sigma=0.01)} noise.}
-  %
-  \item{cluster}{
-    an object of class \code{"SOCKcluster"} or \code{"cluster"}. By default \code{cluster = NULL}.}
-  %
-  \item{seed}{
-    seed set when the routine starts. By default \code{seed = 123456}.}
-  %
-  \item{tol}{
-    optimizer tolerance. By default \code{tol = 1e-100}.}
-  %
 }
 %%%%%%%%% DETAILS %%%%%%%%%%%
   \details{
@@ -65,58 +49,56 @@
         \item a) \eqn{\omega_{it} = g(x_{it} , p_{it})}: productivity is an unknown function \eqn{g(.)} of state and a proxy variables;
 \item b) \eqn{E(\omega_{it} | \omega_{it-1)}=f[\omega_{it-1}]}, productivity is an unknown function \eqn{f[.]} of lagged productivity, \eqn{\omega_{it-1}}.
       }
-   Under the above set of assumptions, It is possible to construct a system gmm using the  vector of residuals from
-   \itemize{
-    \item \eqn{r_{1it} = y_{it} - alpha - w_{it}\beta - x_{it}\gamma - g(x_{it} , p_{it}) }
-    \item \eqn{r_{2it} = y_{it} - alpha - w_{it}\beta - x_{it}\gamma - f[g(x_{it-1} , p_{it-1})]}
-   }
-  where the unknown function \eqn{f(.)} is approximeted by a n-th order polynomial and \eqn{g(x_{it} , m_{it}) = \lambda_0 + c(x_{it} , m_{it})\lambda}. In particular, \eqn{g(x_{it} , m_{it})} is a linear combination of functions in \eqn{(x_{it} , m_{it})}
-and \eqn{c_{it}} are the addends of this linear combination. The residuals eqn{r_{it}} are used to set the moment conditions
-  \itemize{
-    \item \eqn{E(Z_{it}*r_{it}) =0}
+    Under the above set of assumptions, It is possible to construct a system gmm using the  vector of residuals from
+    \itemize{
+      \item \eqn{r_{1it} = y_{it} - \alpha - w_{it}\beta - x_{it}\gamma - g(x_{it} , p_{it}) }
+      \item \eqn{r_{2it} = y_{it} - \alpha - w_{it}\beta - x_{it}\gamma - f[g(x_{it-1} , p_{it-1})]}
+    }
+    where the unknown function \eqn{f(.)} is approximated by a n-th order polynomial and \eqn{g(x_{it} , m_{it}) = \lambda_0 + c(x_{it} , m_{it})\lambda}. In particular, \eqn{g(x_{it} , m_{it})} is a linear combination of functions in \eqn{(x_{it} , m_{it})}
+    and \eqn{c_{it}} are the addends of this linear combination. The residuals \eqn{r_{it}} are used to set the moment conditions
+    \itemize{
+      \item \eqn{E(Z_{it}*r_{it}) =0}
+    }
+    with the following set of instruments:
+      \itemize{
+        \item \eqn{Z1_{it} = (1, w_{it}, x_{it}, c_{it})}
+        \item \eqn{Z2_{it} = (w_{it-1}, c_{it}, c_{it})}
+      }
+    Following previous assumptions, being \eqn{f(\omega) = \delta_0 + \delta_1(c_{it}\lambda) + \delta_2(c_{it}\lambda)^2 + ... + \delta_G(c_{it}\lambda)^G}, one can set \eqn{\delta_1 = G = 1} and estimate the model in a linear fashion - i.e., using a linear 2SLS model.
   }
-  with the following set of instruments:
-  \itemize{
-    \item \eqn{Z1_{it} = (1, w_{it}, x_{it}, c_{it})}
-    \item \eqn{Z2_{it} = (w_{it-1}, c_{it}, c_{it})}
-  }
-  }
+
+
 %%%%%%%%% VALUE %%%%%%%%%%%
   \value{
-The output of the function \code{prodestWRDG} is a member of the \code{S3} class \pkg{prod}. More precisely, is a list (of length 3) containing the following elements:
+    The output of the function \code{prodestWRDG} is a member of the \code{S3} class \pkg{prod}. More precisely, is a list (of length 3) containing the following elements:
 
-    \code{Model}, a list containing:
-    \itemize{
-      \item \code{method:} a string describing the method ('WRDG').
-      \item \code{elapsed.time:} time elapsed during the estimation.
-      \item \code{seed:} the seed set at the beginning of the estimation.
-      \item \code{opt.outcome:} optimization outcome.
-    }
+      \code{Model}, a list containing:
+      \itemize{
+        \item \code{method:} a string describing the method ('WRDG').
+        \item \code{elapsed.time:} time elapsed during the estimation.
+        \item \code{opt.outcome:} optimization outcome.
+      }
 
     \code{Data}, a list containing:
-    \itemize{
-      \item \code{Y:} the vector of value added log output.
-      \item \code{free:} the vector/matrix/dataframe of log free variables.
-      \item \code{state:} the vector/matrix/dataframe of log state variables.
-      \item \code{proxy:} the vector/matrix/dataframe of log proxy variables.
-      \item \code{control:} the vector/matrix/dataframe of log control variables.
-      \item \code{idvar:} the vector/matrix/dataframe identifying individual panels.
-      \item \code{timevar:} the vector/matrix/dataframe identifying time.
-    }
+      \itemize{
+        \item \code{Y:} the vector of value added log output.
+        \item \code{free:} the vector/matrix/dataframe of log free variables.
+        \item \code{state:} the vector/matrix/dataframe of log state variables.
+        \item \code{proxy:} the vector/matrix/dataframe of log proxy variables.
+        \item \code{control:} the vector/matrix/dataframe of log control variables.
+        \item \code{idvar:} the vector/matrix/dataframe identifying individual panels.
+        \item \code{timevar:} the vector/matrix/dataframe identifying time.
+      }
 
     \code{Estimates}, a list containing:
-    \itemize{
-      \item \code{pars:} the vector of estimated coefficients.
-      \item \code{std.errors:} the vector of bootstrapped standard errors.
-    }
+      \itemize{
+        \item \code{pars:} the vector of estimated coefficients.
+        \item \code{std.errors:} the vector of bootstrapped standard errors.
+      }
 
     Members of class \code{prod} have an \code{omega} method returning a numeric object with the estimated productivity - that is: \eqn{\omega_{it} = y_{it} - (\alpha + w_{it}\beta + k_{it}\gamma)}.
     \code{FSres} method returns a numeric object with the residuals of the first stage regression, while \code{summary}, \code{show} and \code{coef} methods are implemented and work as usual.
   }
-%%%%%%%%% NOTE %%%%%%%%%%%
-%  \note{
-%    \code{prodestWRDG()} proceeds with the estimation
-%  }
 %%%%%%%%% AUTHOR %%%%%%%%%%%
   \author{
     Gabriele Rovigatti
@@ -129,28 +111,28 @@ The output of the function \code{prodestWRDG} is a member of the \code{S3} class
   }
 %%%%%%%%% EXAMPLES %%%%%%%%%%%
   \examples{
-    \donttest{
-      data("chilean")
-    
-      # we fit a model with one free (unskilled), one state (capital)
-      # and one proxy variable (electricity)
-    
-      WRDG.fit <- prodestWRDG(chilean$Y, chilean$fX1,
-                          chilean$sX, chilean$pX, chilean$idvar, chilean$timevar)
-    
-      # show results
-      WRDG.fit
+    data("chilean")
 
+    # we fit a model with two free (skilled and unskilled), one state (capital)
+    # and one proxy variable (electricity)
+
+    WRDG.IV.fit <- prodestWRDG_GMM(chilean$Y, fX = cbind(chilean$fX1, chilean$fX2),
+                                    chilean$sX, chilean$pX, chilean$idvar, chilean$timevar)
+
+    # show results
+    WRDG.IV.fit
+
+    \donttest{
       # estimate a panel dataset - DGP1, various measurement errors - and run the estimation
       sim <- panelSim()
 
-      WRDG.sim1 <- prodestWRDG(sim$Y, sim$fX, sim$sX, sim$pX1, sim$idvar, sim$timevar)
-      WRDG.sim2 <- prodestWRDG(sim$Y, sim$fX, sim$sX, sim$pX2, sim$idvar, sim$timevar)
-      WRDG.sim3 <- prodestWRDG(sim$Y, sim$fX, sim$sX, sim$pX3, sim$idvar, sim$timevar)
-      WRDG.sim4 <- prodestWRDG(sim$Y, sim$fX, sim$sX, sim$pX4, sim$idvar, sim$timevar)
+      WRDG.IV.sim1 <- prodestWRDG_GMM(sim$Y, sim$fX, sim$sX, sim$pX1, sim$idvar, sim$timevar)
+      WRDG.IV.sim2 <- prodestWRDG_GMM(sim$Y, sim$fX, sim$sX, sim$pX2, sim$idvar, sim$timevar)
+      WRDG.IV.sim3 <- prodestWRDG_GMM(sim$Y, sim$fX, sim$sX, sim$pX3, sim$idvar, sim$timevar)
+      WRDG.IV.sim4 <- prodestWRDG_GMM(sim$Y, sim$fX, sim$sX, sim$pX4, sim$idvar, sim$timevar)
 
       # show results in .tex tabular format
-      printProd(list(WRDG.sim1, WRDG.sim2, WRDG.sim3, WRDG.sim4), parnames = c('Free','State'))
+      printProd(list(WRDG.IV.sim1, WRDG.IV.sim2, WRDG.IV.sim3, WRDG.IV.sim4),
+                parnames = c('Free','State'))
     }
   }
-

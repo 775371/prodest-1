@@ -2,8 +2,7 @@
 
 # function to estimate OP and LP model #
 prodestOP <- function(Y, fX, sX, pX, idvar, timevar, R = 20, cX = NULL, opt = 'optim',
-                      theta0 = NULL, seed = 123456, cluster = NULL, tol = 1e-100){
-  set.seed(seed)
+                      theta0 = NULL, cluster = NULL, tol = 1e-100, exit = FALSE){
   Start = Sys.time() # start tracking time
   Y <- checkM(Y) # change all input to matrix
   fX <- checkM(fX)
@@ -17,31 +16,58 @@ prodestOP <- function(Y, fX, sX, pX, idvar, timevar, R = 20, cX = NULL, opt = 'o
   polyframe <- data.frame(cbind(sX,pX)) # vars to be used in polynomial approximation
   mod <- model.matrix( ~ .^2 - 1, data = polyframe) # generate the polynomial elements - this drops NAs
   mod <- mod[match(rownames(polyframe), rownames(mod)),] # replace NAs if there was any
+  ### WORK ON ATTRITION - generate fitted survival probabilities ###
+  if (exit[1] == TRUE){ # if 'exit' is either true, or a matrix/vector of entry and exit
+    att = TRUE
+    if (is.logical(exit)){ # if exit is true, generate the vector of exits
+      exitdata = data.frame(idvar = idvar, timevar = timevar)
+      maxdate <- max(exitdata$timevar)
+      exit <- as.matrix(do.call(rbind, lapply(split(exitdata, list(exitdata$idvar)),
+                                              function(x){
+                                                maxid = max(x$timevar)
+                                                x$ans <- x$timevar == maxid & maxid != maxdate # generate the dummy for last seen year not being the last year in the sample
+                                                cbind(x$ans) } )))
+    } else {
+      exit <- checkMD(exit) # change the input data to matrix
+    }
+    if ( (mean(exit) == 1) | (mean(exit) == 0) ){
+      stop("No ID appears to exit the sample. Check the exit variable or run the model without exit = TRUE")
+    } else {
+      lagProbitvars <- cbind(mod, sX^2, pX^2) # generate the lagged interaction variables
+      for (i in 1:dim(lagProbitvars)[2]){
+        lagProbitvars[, i] <- lagPanel(lagProbitvars[, i], idvar = idvar, timevar = timevar)
+      }
+      probreg <- glm(exit ~ lagProbitvars, family = binomial(link = 'probit')) # run the probit regression
+      Pr.hat <- predict(probreg, newdata = as.data.frame(lagProbitvars), type = 'response') # predict the fitted exit probability
+    }
+  } else {
+    att = FALSE
+    Pr.hat <- matrix(0, nrow = nrow(mod), ncol = 1) # generate fitted probability as all 0s
+  }
+  ### END OF ATTRITION ###
   regvars <- cbind(fX, cX, mod, sX^2, pX^2) # generate a polynomial of the desired level
   lag.sX = sX # generate sX lags
   for (i in 1:snum) {
     lag.sX[, i] = lagPanel(sX[, i], idvar = idvar, timevar = timevar)
   }
-  if (!is.null(cX)) {  # generate the matrix of data
-    data <- suppressWarnings(as.matrix(data.frame(state = sX, lag.sX = lag.sX, free = fX, cX = cX, Y = Y,
-                                 idvar = idvar, timevar = timevar, regvars = regvars)))
-  } else {
-    data <- suppressWarnings(as.matrix(data.frame(state = sX, lag.sX = lag.sX, free = fX, Y = Y, idvar = idvar,
-                                 timevar = timevar, regvars = regvars)))
+  data <- suppressWarnings(as.matrix(data.frame(state = sX, lag.sX = lag.sX, free = fX, Y = Y, idvar = idvar, # generate the matrix of data
+                                                timevar = timevar, regvars = regvars, Pr.hat = Pr.hat)))
+  if (!is.null(cX)) {
+    data <- suppressWarnings(as.matrix(data.frame(data, cX = cX)))
   }
   betas <- finalOPLP(ind = TRUE, data = data, fnum = fnum, snum = snum, cnum = cnum, opt = opt,
-                     theta0 = theta0, boot = FALSE, tol = tol) # generate the list of estimated betas
+                     theta0 = theta0, boot = FALSE, tol = tol, att = att) # generate the list of estimated betas
   boot.indices <- block.boot.resample(idvar, R) # generate a list: every element has different length (same IDs, different time occasions) and is a vector of new indices, whose rownames are the new IDs
   if (is.null(cluster)){
     nCores = NULL
     boot.betas <- matrix(unlist(lapply(boot.indices, finalOPLP, data = data, fnum = fnum, snum = snum, cnum = cnum,
-                                       opt = opt, theta0 = theta0, boot = TRUE, tol = tol)), ncol = fnum+snum+cnum, byrow = TRUE) # use the indices and pass them to the final function (reshape the data)
+                                       opt = opt, theta0 = theta0, boot = TRUE, tol = tol, att = att)), ncol = fnum+snum+cnum, byrow = TRUE) # use the indices and pass them to the final function (reshape the data)
   } else { # set up the cluster: send the lag Panel and the data.table libraries to clusters
     nCores = length(cluster)
     clusterEvalQ(cl = cluster, library(prodest))
     boot.betas <- matrix(unlist(parLapply(cl = cluster, boot.indices, finalOPLP, data = data,
                                           fnum = fnum, snum = snum, cnum = cnum,
-                                          opt = opt, theta0 = theta0, boot = TRUE, tol = tol)), ncol = fnum+snum+cnum,
+                                          opt = opt, theta0 = theta0, boot = TRUE, tol = tol, att = att)), ncol = fnum+snum+cnum,
                          byrow = TRUE) # use the indices and pass them to the final function (reshape the data)
   }
   boot.errors <- apply(boot.betas,2,sd,na.rm=TRUE) # calculate standard deviations
@@ -54,7 +80,7 @@ prodestOP <- function(Y, fX, sX, pX, idvar, timevar, R = 20, cX = NULL, opt = 'o
   elapsedTime = Sys.time() - Start # total running time
   out <- new("prod",
              Model = list(method = 'OP', FSbetas = betas$FSbetas, boot.repetitions = R, elapsed.time = elapsedTime,
-                          theta0 = theta0 , opt = opt, seed = seed, opt.outcome = betas$opt.outcome, nCores = nCores),
+                          theta0 = theta0 , opt = opt, opt.outcome = betas$opt.outcome, nCores = nCores),
              Data = list(Y = Y, free = fX, state = sX, proxy = pX, control = cX, idvar = idvar, timevar = timevar,
                          FSresiduals = betas$FSresiduals),
              Estimates = list(pars = betas$betas, std.errors = boot.errors))
@@ -64,8 +90,7 @@ prodestOP <- function(Y, fX, sX, pX, idvar, timevar, R = 20, cX = NULL, opt = 'o
 
 # function to estimate OP and LP model #
 prodestLP <- function(Y, fX, sX, pX, idvar, timevar, R = 20, cX = NULL, opt = 'optim',
-                      theta0 = NULL, seed = 123456, cluster = NULL, tol = 1e-100){
-  set.seed(seed)
+                      theta0 = NULL, cluster = NULL, tol = 1e-100, exit = FALSE){
   Start = Sys.time() # start tracking time
   Y <- checkM(Y) # change all input to matrix
   fX <- checkM(fX)
@@ -79,34 +104,61 @@ prodestLP <- function(Y, fX, sX, pX, idvar, timevar, R = 20, cX = NULL, opt = 'o
   polyframe <- data.frame(cbind(sX,pX)) # vars to be used in polynomial approximation
   mod <- model.matrix( ~.^2-1, data = polyframe) # generate the polynomial elements - this drops NAs
   mod <- mod[match(rownames(polyframe),rownames(mod)),] # replace NAs if there was any
+  ### WORK ON ATTRITION - generate fitted survival probabilities ###
+  if (exit[1] == TRUE){ # if 'exit' is either true, or a matrix/vector of entry and exit
+    att = TRUE
+    if (is.logical(exit)){ # if exit is true, generate the vector of exits
+      exitdata = data.frame(idvar = idvar, timevar = timevar)
+      maxdate <- max(exitdata$timevar)
+      exit <- as.matrix(do.call(rbind, lapply(split(exitdata, list(exitdata$idvar)),
+                                              function(x){
+                                                maxid = max(x$timevar)
+                                                x$ans <- x$timevar == maxid & maxid != maxdate # generate the dummy for last seen year not being the last year in the sample
+                                                cbind(x$ans) } )))
+    } else {
+      exit <- checkMD(exit) # change the input data to matrix
+    }
+    if ( (mean(exit) == 1) | (mean(exit) == 0) ){
+      stop("No ID appears to exit the sample. Check the exit variable or run the model without exit = TRUE")
+    } else {
+      lagProbitvars <- cbind(mod, sX^2, pX^2) # generate the lagged interaction variables
+      for (i in 1:dim(lagProbitvars)[2]){
+        lagProbitvars[, i] <- lagPanel(lagProbitvars[, i], idvar = idvar, timevar = timevar)
+      }
+      probreg <- glm(exit ~ lagProbitvars, family = binomial(link = 'probit')) # run the probit regression
+      Pr.hat <- predict(probreg, newdata = as.data.frame(lagProbitvars), type = 'response') # predict the fitted exit probability
+    }
+  } else {
+    att = FALSE
+    Pr.hat <- matrix(0, nrow = nrow(mod), ncol = 1) # generate fitted probability as all 0s
+  }
+  ### END OF ATTRITION ###
   regvars <- cbind(fX, cX, mod, sX^2, pX^2) # generate a polynomial of the desired level
   lag.sX = sX # generate sX lags
   for (i in 1:snum) {
     lag.sX[, i] = lagPanel(sX[, i], idvar = idvar, timevar = timevar)
   }
-  if (!is.null(cX)) {  # generate the matrix of data
-    data <- suppressWarnings(as.matrix(data.frame(state = sX, lag.sX = lag.sX, free = fX, cX = cX, Y = Y,
-                                 idvar = idvar, timevar = timevar, regvars = regvars)))
-  } else {
-    data <- suppressWarnings(as.matrix(data.frame(state = sX, lag.sX = lag.sX, free = fX, Y = Y, idvar = idvar,
-                                 timevar = timevar, regvars = regvars)))
+  data <- suppressWarnings(as.matrix(data.frame(state = sX, lag.sX = lag.sX, free = fX, Y = Y, idvar = idvar, # generate the matrix of data
+                                                timevar = timevar, regvars = regvars, Pr.hat = Pr.hat)))
+  if (!is.null(cX)) {
+    data <- suppressWarnings(as.matrix(data.frame(data, cX = cX)))
   }
   betas <- finalOPLP(ind = TRUE, data = data, fnum = fnum, snum = snum, cnum = cnum, opt = opt,
-                     theta0 = theta0, boot = FALSE, tol = tol) # generate the list of estimated betas
+                     theta0 = theta0, boot = FALSE, tol = tol, att = att) # generate the list of estimated betas
   boot.indices <- block.boot.resample(idvar, R) # generate a list: every element has different length (same IDs, different time occasions) and is a vector of new indices, whose rownames are the new IDs
   if (is.null(cluster)){
     nCores = NULL
     boot.betas <- matrix(NA, R, (fnum + snum + cnum))
     for (i in 1:R){
       boot.betas[i,] <- finalOPLP(ind = boot.indices[[i]], data = data, fnum = fnum, snum = snum, cnum = cnum,
-                                  opt = opt, theta0 = theta0, boot = TRUE, tol = tol)
+                                  opt = opt, theta0 = theta0, boot = TRUE, tol = tol, att = att)
     }
   } else { # set up the cluster: send the lag Panel and the data.table libraries to clusters
     nCores = length(cluster)
     clusterEvalQ(cl = cluster, library(prodest))
     boot.betas <- matrix(unlist(parLapply(cl = cluster, boot.indices, finalOPLP, data = data,
                                           fnum = fnum, snum = snum, cnum = cnum,
-                                          opt = opt, theta0 = theta0, boot = TRUE, tol = tol)), ncol = fnum + snum + cnum,
+                                          opt = opt, theta0 = theta0, boot = TRUE, tol = tol, att = att)), ncol = fnum + snum + cnum,
                          byrow = TRUE) # use the indices and pass them to the final function (reshape the data)
   }
   boot.errors <- apply(boot.betas, 2, sd, na.rm = TRUE) # calculate standard deviations
@@ -119,7 +171,7 @@ prodestLP <- function(Y, fX, sX, pX, idvar, timevar, R = 20, cX = NULL, opt = 'o
   elapsedTime = Sys.time() - Start # total running time
   out <- new("prod",
              Model = list(method = 'LP', FSbetas = betas$FSbetas, boot.repetitions = R, elapsed.time = elapsedTime,
-                          theta0 = theta0 , opt = opt, seed = seed, opt.outcome = betas$opt.outcome, nCores = nCores),
+                          theta0 = theta0 , opt = opt, opt.outcome = betas$opt.outcome, nCores = nCores),
              Data = list(Y = Y, free = fX, state = sX, proxy = pX, control = cX, idvar = idvar, timevar = timevar,
                          FSresiduals = betas$FSresiduals),
              Estimates = list(pars = betas$betas, std.errors = boot.errors))
@@ -128,7 +180,7 @@ prodestLP <- function(Y, fX, sX, pX, idvar, timevar, R = 20, cX = NULL, opt = 'o
 # end of prodestLP #
 
 # function to estimate and to bootstrap OP / LP #
-finalOPLP <- function(ind, data, fnum, snum, cnum, opt, theta0, boot, tol){
+finalOPLP <- function(ind, data, fnum, snum, cnum, opt, theta0, boot, tol, att){
   if (sum(as.numeric(ind)) == length(ind)){ # if the ind variable is not always TRUE
     newid <- data[ind, 'idvar', drop = FALSE]
   } else {
@@ -156,10 +208,11 @@ finalOPLP <- function(ind, data, fnum, snum, cnum, opt, theta0, boot, tol){
   res <- data[,'Y', drop = FALSE] - (fX %*% beta.free) # "clean" the outcome from the effects of free vars
   state = data[, grepl('state', colnames(data)), drop = FALSE]
   lag.sX = data[, grepl('lag.sX', colnames(data)), drop = FALSE]
-  tmp.data <- model.frame(state ~ lag.sX + phi + lag.phi + res)
+  Pr.hat <- data[, grepl('Pr.hat', colnames(data)), drop = FALSE]
+  tmp.data <- model.frame(state ~ lag.sX + phi + lag.phi + res + Pr.hat)
   if (opt == 'optim'){
-    try.state <- try(optim(theta0, gOPLP, method = "BFGS", mX = tmp.data$state, mlX = tmp.data$lag.sX,
-                           vphi = tmp.data$phi, vlag.phi = tmp.data$lag.phi, vres = tmp.data$res, stol = tol), silent = TRUE)
+    try.state <- try(optim(theta0, gOPLP, method = "BFGS", mX = tmp.data$state, mlX = tmp.data$lag.sX, vphi = tmp.data$phi,
+                            vlag.phi = tmp.data$lag.phi, vres = tmp.data$res, stol = tol, Pr.hat = tmp.data$Pr.hat, att = att), silent = TRUE)
     if (!inherits(try.state, "try-error")) {
       beta.state <- try.state$par
       opt.outcome <- try.state
@@ -171,7 +224,7 @@ finalOPLP <- function(ind, data, fnum, snum, cnum, opt, theta0, boot, tol){
     try.state <- try(DEoptim(fn = gOPLP, lower = c(theta0), upper = rep.int(1,length(theta0)),
                              mX = tmp.data$state, mlX = tmp.data$lag.sX,
                              vphi = tmp.data$phi, vlag.phi = tmp.data$lag.phi,
-                             vres =  tmp.data$res, stol = tol, control = DEoptim.control(trace = FALSE)),
+                             vres =  tmp.data$res, stol = tol, Pr.hat = tmp.data$Pr.hat, att = att, control = DEoptim.control(trace = FALSE)),
                      silent = TRUE)
     if (!inherits(try.state, "try-error")) {
       beta.state <- try.state$optim$bestmem
@@ -183,7 +236,7 @@ finalOPLP <- function(ind, data, fnum, snum, cnum, opt, theta0, boot, tol){
   } else if (opt == 'solnp') {
     try.state <- try(suppressWarnings(solnp(theta0, gOPLP, mX = tmp.data$state, mlX = tmp.data$lag.sX,
                            vphi = tmp.data$phi, vlag.phi = tmp.data$lag.phi,
-                           vres =  tmp.data$res, stol = tol, control = list(trace = FALSE))), silent = TRUE)
+                           vres =  tmp.data$res, stol = tol, Pr.hat = tmp.data$Pr.hat, att = att, control = list(trace = FALSE))), silent = TRUE)
     if (!inherits(try.state, "try-error")) {
       beta.state <- try.state$pars
       opt.outcome <- try.state
@@ -202,10 +255,15 @@ finalOPLP <- function(ind, data, fnum, snum, cnum, opt, theta0, boot, tol){
 # end of OP / LP final function #
 
 # function to run the GMM estimation for OP and LP #
-gOPLP <- function(vtheta, mX, mlX, vphi, vlag.phi, vres, stol){
+gOPLP <- function(vtheta, mX, mlX, vphi, vlag.phi, vres, stol, Pr.hat, att){
   Omega <- vphi - mX %*% vtheta
   Omega_lag <- vlag.phi - mlX %*% vtheta
-  Omega_lag_pol <- cbind(1, Omega_lag, Omega_lag^2, Omega_lag^3)
+  if (att == FALSE){
+    Omega_lag_pol <- cbind(1, Omega_lag, Omega_lag^2, Omega_lag^3)
+  } else {
+    Omega_lag_pol <- cbind(1, Omega_lag, Omega_lag^2, Omega_lag^3, Pr.hat, Pr.hat^2, Pr.hat^3, Pr.hat * Omega_lag,
+                           Pr.hat^2 * Omega_lag, Pr.hat * Omega_lag^2)
+  }
   g_b <- solve(crossprod(Omega_lag_pol), tol = stol) %*% t(Omega_lag_pol) %*% Omega
   XI <- vres - (mX %*% vtheta) - (Omega_lag_pol %*% g_b)
   crit <- crossprod(XI)

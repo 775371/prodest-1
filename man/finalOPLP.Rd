@@ -4,11 +4,11 @@
 \title{OP and LP estimation routine}
 %%%%%%%%%%%%%%%% DESCRIPTION %%%%%%%%%%%%%%%%%%%
 \description{
-  \code{finalOPLP} is the function linking the data cleaning part of the routine with the final function to be boostrapped.
+  \code{finalOPLP} is the function linking the data cleaning part of the routine with the final function to be bootstrapped.
 }
 %%%%%%%%% USAGE %%%%%%%%%%%
 \usage{
-  finalOPLP(ind, data, fnum, snum, cnum, opt, theta0, boot, tol)
+  finalOPLP(ind, data, fnum, snum, cnum, opt, theta0, boot, tol, att)
 }
 %%%%%%%%% ARGUMENTS %%%%%%%%%%%
 \arguments{
@@ -47,6 +47,10 @@
   %
   \item{tol}{
     Optimization tolerance set.
+  }
+  %
+  \item{att}{
+    Indicator for attrition in the data - i.e., if  firms exit the market.
   }
   %
 }

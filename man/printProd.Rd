@@ -2,7 +2,7 @@
 \alias{printProd}
 %%%%%%%%%% TITLE %%%%%%%%%%%%%%%%
 \title{
-  Print to lateX - prod objects
+  Print output - prod objects
 }
 %%%%%%%%%% DESCRIPTION %%%%%%%%%%%%%%%%
 \description{
@@ -11,7 +11,7 @@
 %%%%%%%%%% USAGE %%%%%%%%%%%%%%%%
 \usage{
   printProd(mods, modnames = NULL, parnames = NULL, outfile = NULL,
-            ptime = FALSE, nboot = FALSE)
+            ptime = FALSE, nboot = FALSE, screen = FALSE)
 }
 %%%%%%%%%% ARGUMENTS %%%%%%%%%%%%%%%%
 \arguments{
@@ -32,6 +32,10 @@
   %
   \item{nboot}{
     add a row showing the number of bootstrap repetitions. By default \code{nboot = FALSE}.}
+  %
+  \item{screen}{
+    print the table on-screen without teX format. By default \code{screen = FALSE}.}
+  %
 }
 %%%%%%%%% VALUE %%%%%%%%%%%
   \value{
@@ -54,4 +58,7 @@ The output of the function \code{printProd} is either a screen printed tabular i
     # show the output in latex - tabular format
     printProd(list(OPfit, WRDGfit), modnames = c('Olley-Pakes', 'Wooldridge'),
               parnames = c('bunsk', 'bsk', 'bk'))
+    # show the output on-screen - no teX format
+    printProd(list(OPfit, WRDGfit), modnames = c('Olley-Pakes', 'Wooldridge'),
+              parnames = c('bunsk', 'bsk', 'bk'), screen = TRUE)
   }

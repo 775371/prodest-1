@@ -4,7 +4,7 @@ citEntry(entry="Manual",
          title = "prodest: Production Function Estimation",
          author = personList(person(given="Gabriele", family="Rovigatti")),
          year = "2017",
-         note = "R package version 0.1.1",
+         note = "R package version 1.0.1",
          textVersion = "Rovigatti, G. (2017). prodest: Production Function Estimation in R. R package.")
         
 
@@ -14,4 +14,4 @@ citEntry(entry="Article",
          author = personList(person(given="Gabriele", family="Rovigatti")),
          year = "2017",
          journal = "Working paper",
-         textVersion = "Rovigatti, G. (2017). Production Function Estimation in R: The prodest Package. Working paper.")
+         textVersion = "Rovigatti, G. (2018). Production Function Estimation in R: The prodest Package. Working paper.")

@@ -10,6 +10,22 @@ checkM <- function(input){ # , inputname = NA
 }
 # end check matrix fun #
 
+# function to check and change input - dummy variables - to matrix #
+checkMD <- function(input){ # , inputname = NA
+  if (!is.matrix(input)) {
+    out <- as.matrix(input)
+  } else{
+    out <- input
+  }
+  colnames(out) <- NULL
+  if (any( (out != 0) & (out != 1) ) ){ # if exit is not binary, stop the routine
+    nm <-deparse(substitute(input))
+    stop(paste(nm, "is not binary"))
+  }
+  return(out)
+}
+# end check matrix fun #
+
 # function to lag variables within a panel #
 lagPanel <- function( idvar, timevar, value ){
   df <- data.frame( idvar, timevar, value)
@@ -20,6 +36,13 @@ lagPanel <- function( idvar, timevar, value ){
   return( out )
 }
 # end of lag panel #
+
+# function to demean a vector and take the variance #
+withinvar <- function(inmat){
+  devmat = inmat - mean(inmat) # demean the vector
+  return(var(c(devmat)))
+}
+# end of within variance function #
 
 # boot resampling on IDs: bootstrapping on individuals #
 block.boot.resample <- function( idvar, R ){
@@ -63,64 +86,103 @@ weightM <- function(Y, X1, X2, Z1, Z2, betas, numR, SE = FALSE){
 # end of weighting matrix function #
 
 # function to print lateX table of results #
-printProd <- function(mods, modnames = NULL, parnames = NULL, outfile = NULL, ptime = FALSE, nboot = FALSE){
+printProd <- function(mods, modnames = NULL, parnames = NULL, outfile = NULL, ptime = FALSE, nboot = FALSE, screen = FALSE){
   if (!is.null(outfile)) (sink(outfile)) # write on a text file
   numMods <- length(mods)
   numPars <- length(mods[[1]]@Estimates$pars)
-  cat(paste('\\begin{tabular}{', paste(rep('c',(numMods*2+1)), collapse = ''),'}',
-            '\\hline\\hline', sep = '')) # print tabular header
-  nm <- '\n'
-  obs <- '\nN'
-  time <- '\nTime'
-  boot <- '\nBootRep'
-  for (m in 1:numMods){ # generate first and last row: names (methods or user-supplied) and observations
-    if (is.null(modnames)){
-      nm <- paste(nm, mods[[m]]@Model$method, sep = ' & & ')
-    }else{
-      nm <- paste(nm, modnames[m], sep = ' & & ')
+  if (screen == FALSE){
+    cat(paste('\\begin{tabular}{', paste(rep('c',(numMods*2+1)), collapse = ''),'}',
+              '\\hline\\hline', sep = '')) # print tabular header
+    nm <- '\n'
+    obs <- '\nN'
+    time <- '\nTime'
+    boot <- '\nBootRep'
+    for (m in 1:numMods){ # generate first and last row: names (methods or user-supplied) and observations
+      if (is.null(modnames)){
+        nm <- paste(nm, mods[[m]]@Model$method, sep = ' & & ')
+      }else{
+        nm <- paste(nm, modnames[m], sep = ' & & ')
+      }
+      obs <- paste(obs, length(mods[[m]]@Data$Y), sep = ' & & ')
+      time <- paste(time, round(mods[[m]]@Model$elapsed.time[[1]], digits = 2), sep = ' & & ')
+      boot <- paste(boot, mods[[m]]@Model$boot.repetitions, sep = ' & & ')
     }
-    obs <- paste(obs, length(mods[[m]]@Data$Y), sep = ' & & ')
-    time <- paste(time, round(mods[[m]]@Model$elapsed.time[[1]], digits = 2), sep = ' & & ')
-    boot <- paste(boot, mods[[m]]@Model$boot.repetitions, sep = ' & & ')
-  }
-  nm <- paste(nm, '\\\\\\hline')
-  obs <- paste(obs, '\\\\\\hline\\hline')
-  cat(nm)
-  for (p in 1:numPars){ # generate the table body row by row: names (vars or user-supplied),
-    if (is.null(parnames)){
-      betas <- paste('\n', names(mods[[1]]@Estimates$pars)[p])
+    nm <- paste(nm, '\\\\\\hline')
+    obs <- paste(obs, '\\\\\\hline\\hline')
+    cat(nm)
+    for (p in 1:numPars){ # generate the table body row by row: names (vars or user-supplied),
+      if (is.null(parnames)){
+        betas <- paste('\n', names(mods[[1]]@Estimates$pars)[p])
+      }
+      else{
+        betas <- paste('\n', parnames[p])
+      }
+      sigmas <- '\n'
+      blank <- '\n'
+      for (m in 1:numMods){
+        betas <- paste(betas, round(mods[[m]]@Estimates$pars[p],digits = 3), sep = ' & & ')
+        sigma <- paste('(', round(mods[[m]]@Estimates$std.errors[p],digits = 3), ')', sep = '')
+        sigmas <- paste(sigmas, sigma , sep = ' & & ')
+        blank <- paste(blank, ' & ',  sep = '')
+      }
+      betas <- paste(betas, '\\\\')
+      sigmas <- paste(sigmas, '\\\\')
+      blank <- paste(blank, '\\\\')
+      cat(betas)
+      cat(sigmas)
+      cat(blank)
     }
-    else{
-      betas <- paste('\n', parnames[p])
+    cat(blank)
+    if (ptime == TRUE) (cat(paste(time, '\\\\', sep = '')))
+    if (nboot == TRUE) (cat(paste(boot, '\\\\', sep = '')))
+    cat(obs)
+    cat('\n\\end{tabular}')
+    if (!is.null(outfile)) (sink())
+  } else{
+    cat(paste(rep('--', (numMods*3+1), sep = ''))) # print
+    nm <- '\n'
+    obs <- '\nN'
+    time <- '\nTime'
+    boot <- '\nBootRep'
+    for (m in 1:numMods){ # generate first and last row: names (methods or user-supplied) and observations
+      if (is.null(modnames)){
+        nm <- paste(nm, mods[[m]]@Model$method, sep = '       ')
+      }else{
+        nm <- paste(nm, modnames[m], sep = '  ')
+      }
+      obs <- paste(obs, length(mods[[m]]@Data$Y), sep = '    ')
+      time <- paste(time, round(mods[[m]]@Model$elapsed.time[[1]], digits = 2), sep = '  ')
+      boot <- paste(boot, mods[[m]]@Model$boot.repetitions, sep = '  ')
     }
-    sigmas <- '\n'
-    blank <- '\n'
-    for (m in 1:numMods){
-      betas <- paste(betas, round(mods[[m]]@Estimates$pars[p],digits = 3), sep = ' & & ')
-      sigma <- paste('(', round(mods[[m]]@Estimates$std.errors[p],digits = 3), ')', sep = '')
-      sigmas <- paste(sigmas, sigma , sep = ' & & ')
-      blank <- paste(blank, ' & ',  sep = '')
+    cat(nm)
+    cat('\n')
+    cat(paste(rep('--',(numMods*3+1), sep = ''))) # print
+    for (p in 1:numPars){ # generate the table body row by row: names (vars or user-supplied),
+      if (is.null(parnames)){
+        betas <- paste('\n', names(mods[[1]]@Estimates$pars)[p])
+      }
+      else{
+        betas <- paste('\n', parnames[p])
+      }
+      sigmas <- '\n   '
+      blank <- ''
+      for (m in 1:numMods){
+        betas <- paste(betas, round(mods[[m]]@Estimates$pars[p],digits = 3), sep = '   ')
+        sigma <- paste('(', round(mods[[m]]@Estimates$std.errors[p],digits = 3), ')', sep = '')
+        sigmas <- paste(sigmas, sigma , sep = ' ')
+        blank <- paste(blank, rep('--',(numMods*2+1)),  sep = '')
+      }
+      cat(betas)
+      cat(sigmas)
+      cat('\n')
+      cat(blank)
     }
-    betas <- paste(betas, '\\\\')
-    sigmas <- paste(sigmas, '\\\\')
-    blank <- paste(blank, '\\\\')
-    cat(betas)
-    cat(sigmas)
+    if (ptime == TRUE) (cat(paste(time, '', sep = '')))
+    if (nboot == TRUE) (cat(paste(boot, '', sep = '')))
+    cat(obs)
+    cat('\n')
     cat(blank)
   }
-  cat(blank)
-  if (ptime == TRUE) (cat(paste(time, '\\\\', sep = '')))
-  if (nboot == TRUE) (cat(paste(boot, '\\\\', sep = '')))
-  cat(obs)
-  cat('\n\\end{tabular}')
-  if (!is.null(outfile)) (sink())
 }
 # end of latex print table #
-
-# function to demean a vector and take the variance #
-withinvar <- function(inmat){
-  devmat = inmat - mean(inmat) # demean the vector
-  return(var(c(devmat)))
-}
-# end of within variance function #
 
